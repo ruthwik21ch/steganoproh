@@ -3,6 +3,7 @@ import sqlite3, hashlib, base64, re
 from PIL import Image
 from cryptography.fernet import Fernet
 from datetime import datetime
+from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = "secret123"
@@ -45,54 +46,11 @@ def is_valid_email(e):
 def is_valid_mobile(m):
     return m.isdigit() and len(m) == 10
 
-# ---------------- STEGANOGRAPHY ---------------- #
-def encode_image(path, data, out):
-    img = Image.open(path)
-    encoded = img.copy()
-    binary = ''.join(format(ord(i), '08b') for i in data)
-    idx = 0
-
-    for r in range(img.height):
-        for c in range(img.width):
-            pixel = list(img.getpixel((c, r)))
-            for n in range(3):
-                if idx < len(binary):
-                    pixel[n] = pixel[n] & ~1 | int(binary[idx])
-                    idx += 1
-            encoded.putpixel((c, r), tuple(pixel))
-            if idx >= len(binary):
-                encoded.save(out)
-                return True
-    return False
-
-
-def decode_image(path):
-    img = Image.open(path)
-    binary = ""
-
-    for r in range(img.height):
-        for c in range(img.width):
-            pixel = img.getpixel((c, r))
-            for n in range(3):
-                binary += str(pixel[n] & 1)
-
-    chars = []
-    for i in range(0, len(binary), 8):
-        byte = binary[i:i+8]
-        chars.append(chr(int(byte, 2)))
-        if ''.join(chars).endswith("###"):
-            break
-
-    message = ''.join(chars)
-    return message.replace("###", "") if "###" in message else ""
-
-
 # ---------------- ROUTES ---------------- #
 
 @app.route("/")
 def home():
     return render_template("login.html")
-
 
 # ---------------- AUTH ---------------- #
 @app.route("/login", methods=["POST"])
@@ -141,14 +99,12 @@ def logout():
     session.clear()
     return redirect("/")
 
-
 # ---------------- DASHBOARD ---------------- #
 @app.route("/dashboard")
 def dashboard():
     if "user" not in session:
         return redirect("/")
     return render_template("dashboard.html", username=session["user"])
-
 
 # ---------------- PROFILE ---------------- #
 @app.route("/profile")
@@ -169,7 +125,6 @@ def profile():
         mobile=user[2]
     )
 
-
 # ---------------- HISTORY ---------------- #
 @app.route("/history")
 def history():
@@ -182,7 +137,6 @@ def history():
     ).fetchall()
 
     return render_template("history.html", history=rows)
-
 
 # ---------------- ENCODE ---------------- #
 @app.route("/encode", methods=["GET", "POST"])
@@ -205,21 +159,42 @@ def encode():
         if not key:
             return "Key missing"
 
-        input_path = "temp_input.png"
-        output_path = "encoded.png"
+        try:
+            img = Image.open(file.stream)
+            encoded = img.copy()
 
-        file.save(input_path)
+            encrypted = Fernet(generate_key(key)).encrypt(msg.encode()).decode() + "###"
+            binary = ''.join(format(ord(i), '08b') for i in encrypted)
 
-        encrypted = Fernet(generate_key(key)).encrypt(msg.encode()).decode() + "###"
+            idx = 0
+            for r in range(img.height):
+                for c in range(img.width):
+                    pixel = list(img.getpixel((c, r)))
+                    for n in range(3):
+                        if idx < len(binary):
+                            pixel[n] = pixel[n] & ~1 | int(binary[idx])
+                            idx += 1
+                    encoded.putpixel((c, r), tuple(pixel))
+                    if idx >= len(binary):
+                        break
 
-        if encode_image(input_path, encrypted, output_path):
+            img_io = BytesIO()
+            encoded.save(img_io, "PNG")
+            img_io.seek(0)
+
             log_action(session["user"], "Encoded")
-            return send_file(output_path, as_attachment=True)
 
-        return "Encoding failed"
+            return send_file(
+                img_io,
+                mimetype="image/png",
+                as_attachment=True,
+                download_name="encoded.png"
+            )
+
+        except Exception as e:
+            return f"Encoding error: {str(e)}"
 
     return render_template("encode.html")
-
 
 # ---------------- DECODE ---------------- #
 @app.route("/decode", methods=["GET", "POST"])
@@ -238,23 +213,38 @@ def decode():
         if not key:
             return render_template("decode.html", error="Key missing")
 
-        input_path = "temp_decode.png"
-        file.save(input_path)
-
-        hidden = decode_image(input_path)
-
-        if not hidden:
-            return render_template("decode.html", error="No hidden message found")
-
         try:
+            img = Image.open(file.stream)
+
+            binary = ""
+            for r in range(img.height):
+                for c in range(img.width):
+                    pixel = img.getpixel((c, r))
+                    for n in range(3):
+                        binary += str(pixel[n] & 1)
+
+            chars = []
+            for i in range(0, len(binary), 8):
+                byte = binary[i:i+8]
+                chars.append(chr(int(byte, 2)))
+                if ''.join(chars).endswith("###"):
+                    break
+
+            hidden = ''.join(chars).replace("###", "")
+
+            if not hidden:
+                return render_template("decode.html", error="No hidden message found")
+
             msg = Fernet(generate_key(key)).decrypt(hidden.encode()).decode()
+
             log_action(session["user"], "Decoded")
+
             return render_template("decode.html", message=msg)
-        except:
+
+        except Exception:
             return render_template("decode.html", error="Wrong key or corrupted image")
 
     return render_template("decode.html")
-
 
 # ---------------- RUN ---------------- #
 if __name__ == "__main__":
