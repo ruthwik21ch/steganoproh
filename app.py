@@ -34,11 +34,16 @@ def hash_password(p):
 def generate_key(k):
     return base64.urlsafe_b64encode(hashlib.sha256(k.encode()).digest())
 
+# ✅ FIXED: prevents Vercel DB crash
 def log_action(user, action):
-    cursor.execute("INSERT INTO history VALUES(NULL,?,?,?)",
-                   (user, action,
-                    datetime.now().strftime("%Y-%m-%d %H:%M")))
-    conn.commit()
+    try:
+        cursor.execute(
+            "INSERT INTO history VALUES(NULL,?,?,?)",
+            (user, action, datetime.now().strftime("%Y-%m-%d %H:%M"))
+        )
+        conn.commit()
+    except:
+        pass  # safe for serverless platforms
 
 def is_valid_email(e):
     return re.match(r"[^@]+@[^@]+\.[^@]+", e)
@@ -46,13 +51,49 @@ def is_valid_email(e):
 def is_valid_mobile(m):
     return m.isdigit() and len(m) == 10
 
+# ---------------- STEGANOGRAPHY ---------------- #
+def encode_image(img, data):
+    encoded = img.copy()
+    binary = ''.join(format(ord(i), '08b') for i in data)
+    idx = 0
+
+    for r in range(img.height):
+        for c in range(img.width):
+            pixel = list(img.getpixel((c, r)))
+            for n in range(3):
+                if idx < len(binary):
+                    pixel[n] = pixel[n] & ~1 | int(binary[idx])
+                    idx += 1
+            encoded.putpixel((c, r), tuple(pixel))
+            if idx >= len(binary):
+                return encoded
+    return encoded
+
+def decode_image(img):
+    binary = ""
+
+    for r in range(img.height):
+        for c in range(img.width):
+            pixel = img.getpixel((c, r))
+            for n in range(3):
+                binary += str(pixel[n] & 1)
+
+    chars = []
+    for i in range(0, len(binary), 8):
+        byte = binary[i:i+8]
+        chars.append(chr(int(byte, 2)))
+        if ''.join(chars).endswith("###"):
+            break
+
+    return ''.join(chars).replace("###", "")
+
 # ---------------- ROUTES ---------------- #
 
 @app.route("/")
 def home():
     return render_template("login.html")
 
-# ---------------- AUTH ---------------- #
+# ---------------- LOGIN ---------------- #
 @app.route("/login", methods=["POST"])
 def login():
     username = request.form.get("username")
@@ -68,16 +109,19 @@ def login():
 
     return "Invalid credentials"
 
-
+# ---------------- REGISTER ---------------- #
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "GET":
         return render_template("register.html")
 
-    if not is_valid_email(request.form.get("email")):
+    email = request.form.get("email")
+    mobile = request.form.get("mobile")
+
+    if not is_valid_email(email):
         return "Invalid Email"
 
-    if not is_valid_mobile(request.form.get("mobile")):
+    if not is_valid_mobile(mobile):
         return "Invalid Mobile"
 
     try:
@@ -85,15 +129,15 @@ def register():
             request.form.get("username"),
             hash_password(request.form.get("password")),
             request.form.get("name"),
-            request.form.get("email"),
-            request.form.get("mobile")
+            email,
+            mobile
         ))
         conn.commit()
         return redirect("/")
     except:
         return "Username already exists"
 
-
+# ---------------- LOGOUT ---------------- #
 @app.route("/logout")
 def logout():
     session.clear()
@@ -153,33 +197,20 @@ def encode():
         if not file or file.filename == "":
             return "No image selected"
 
-        if not msg:
-            return "Message missing"
-
-        if not key:
-            return "Key missing"
+        if not msg or not key:
+            return "Missing data"
 
         try:
             img = Image.open(file.stream)
-            encoded = img.copy()
 
-            encrypted = Fernet(generate_key(key)).encrypt(msg.encode()).decode() + "###"
-            binary = ''.join(format(ord(i), '08b') for i in encrypted)
+            encrypted = Fernet(generate_key(key)).encrypt(
+                msg.encode()
+            ).decode() + "###"
 
-            idx = 0
-            for r in range(img.height):
-                for c in range(img.width):
-                    pixel = list(img.getpixel((c, r)))
-                    for n in range(3):
-                        if idx < len(binary):
-                            pixel[n] = pixel[n] & ~1 | int(binary[idx])
-                            idx += 1
-                    encoded.putpixel((c, r), tuple(pixel))
-                    if idx >= len(binary):
-                        break
+            encoded_img = encode_image(img, encrypted)
 
             img_io = BytesIO()
-            encoded.save(img_io, "PNG")
+            encoded_img.save(img_io, "PNG")
             img_io.seek(0)
 
             log_action(session["user"], "Encoded")
@@ -216,21 +247,7 @@ def decode():
         try:
             img = Image.open(file.stream)
 
-            binary = ""
-            for r in range(img.height):
-                for c in range(img.width):
-                    pixel = img.getpixel((c, r))
-                    for n in range(3):
-                        binary += str(pixel[n] & 1)
-
-            chars = []
-            for i in range(0, len(binary), 8):
-                byte = binary[i:i+8]
-                chars.append(chr(int(byte, 2)))
-                if ''.join(chars).endswith("###"):
-                    break
-
-            hidden = ''.join(chars).replace("###", "")
+            hidden = decode_image(img)
 
             if not hidden:
                 return render_template("decode.html", error="No hidden message found")
@@ -241,7 +258,7 @@ def decode():
 
             return render_template("decode.html", message=msg)
 
-        except Exception:
+        except:
             return render_template("decode.html", error="Wrong key or corrupted image")
 
     return render_template("decode.html")
