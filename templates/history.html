@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History – Stegano Pro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js" defer></script>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+    <a href="/dashboard" class="topbar-brand">🔒 Stegano Pro</a>
+    <div class="topbar-actions">
+        <a href="/dashboard">
+            <button class="btn-ghost">Dashboard</button>
+        </a>
+        <a href="/logout">
+            <button class="btn-danger">Logout</button>
+        </a>
+    </div>
+</div>
+
+<!-- Content -->
+<div class="page-content">
+    <div class="section-header">
+        <h2>📜 Activity History</h2>
+        <p>Your recent encode &amp; decode operations</p>
+    </div>
+
+    {% if history|length == 0 %}
+    <div class="empty-state">
+        <div class="empty-icon">🗂️</div>
+        <p>No activity yet. Start by encoding or decoding a message.</p>
+    </div>
+
+    {% else %}
+        {% for action, time in history %}
+        <div class="history-item">
+            <div class="history-item-left">
+                <div class="history-badge">
+                    {% if action == "Encoded" %}🔏{% else %}🔓{% endif %}
+                </div>
+                <div>
+                    <div class="history-action">{{ action }}</div>
+                </div>
+            </div>
+            <div class="history-time">{{ time }}</div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div style="text-align:center; margin-top:28px;">
+        <a href="/dashboard">
+            <button class="btn-outline btn-sm">← Back to Dashboard</button>
+        </a>
+    </div>
+
+</div>
+
+</body>
+</html>

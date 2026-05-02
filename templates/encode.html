@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Encode – Stegano Pro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js" defer></script>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+    <a href="/dashboard" class="topbar-brand">🔒 Stegano Pro</a>
+    <div class="topbar-actions">
+        <a href="/dashboard">
+            <button class="btn-ghost">← Back</button>
+        </a>
+    </div>
+</div>
+
+<!-- Content -->
+<div class="page-content">
+    <div class="section-header">
+        <h2>🔏 Encode Message</h2>
+        <p>Hide a secret message inside your image</p>
+    </div>
+
+    <div class="card">
+        <form method="POST" enctype="multipart/form-data"
+              onsubmit="return validateEncodeForm()">
+
+            <div class="form-group">
+                <label>Select Image</label>
+                <input type="file" name="image" id="image" accept="image/*"
+                       onchange="previewImage(this, 'imgPreview')" required>
+            </div>
+
+            <img id="imgPreview" style="
+                display:none;
+                width:100%;
+                max-height:200px;
+                object-fit:cover;
+                border-radius:10px;
+                margin-bottom:14px;
+                border:1px solid #E2E8F0;
+            ">
+
+            <div class="divider"></div>
+
+            <div class="form-group">
+                <label>Secret Message</label>
+                <textarea name="message" id="message" rows="5"
+                          placeholder="Enter your secret message..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Encryption Key</label>
+                <input type="password" name="key" id="key"
+                       placeholder="🔑 Enter encryption key" required>
+            </div>
+
+            <button type="submit" onclick="setLoading(this)">
+                🔏 Encode &amp; Save Image
+            </button>
+
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

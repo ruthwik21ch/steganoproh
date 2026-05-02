@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decode – Stegano Pro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js" defer></script>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+    <a href="/dashboard" class="topbar-brand">🔒 Stegano Pro</a>
+    <div class="topbar-actions">
+        <a href="/dashboard">
+            <button class="btn-ghost">← Back</button>
+        </a>
+    </div>
+</div>
+
+<!-- Content -->
+<div class="page-content">
+    <div class="section-header">
+        <h2>🔓 Decode Message</h2>
+        <p>Reveal the hidden message from an image</p>
+    </div>
+
+    <div class="card">
+        <form method="POST" enctype="multipart/form-data"
+              onsubmit="return validateDecodeForm()">
+
+            <div class="form-group">
+                <label>Select Encoded Image</label>
+                <input type="file" name="image" id="image" accept="image/*"
+                       onchange="previewImage(this, 'imgPreview')" required>
+            </div>
+
+            <img id="imgPreview" style="
+                display:none;
+                width:100%;
+                max-height:200px;
+                object-fit:cover;
+                border-radius:10px;
+                margin-bottom:14px;
+                border:1px solid #E2E8F0;
+            ">
+
+            <div class="divider"></div>
+
+            <div class="form-group">
+                <label>Decryption Key</label>
+                <input type="password" name="key" id="key"
+                       placeholder="🔑 Enter decryption key" required>
+            </div>
+
+            <button type="submit" onclick="setLoading(this)">
+                🔓 Decode Message
+            </button>
+
+        </form>
+
+        <div class="divider"></div>
+
+        <!-- Result -->
+        <div class="form-group">
+            <label>Decoded Message</label>
+
+            {% if error %}
+            <div class="alert alert-error">⚠️ {{ error }}</div>
+            {% endif %}
+
+            <textarea id="decodedMessage" class="result-box" readonly>{% if message %}{{ message }}{% else %}Decoded message will appear here…{% endif %}</textarea>
+        </div>
+
+        {% if message %}
+        <button class="btn-outline btn-sm" onclick="copyMessage()">
+            📋 Copy to Clipboard
+        </button>
+        {% endif %}
+
+    </div>
+</div>
+
+</body>
+</html>

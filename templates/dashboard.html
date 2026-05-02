@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard – Stegano Pro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js" defer></script>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+    <span class="topbar-brand">🔒 Stegano Pro</span>
+    <div class="topbar-actions">
+        <a href="/history">
+            <button class="btn-ghost">📜 History</button>
+        </a>
+        <a href="/profile">
+            <button class="btn-ghost">👤 Profile</button>
+        </a>
+        <a href="/logout">
+            <button class="btn-danger">Sign Out</button>
+        </a>
+    </div>
+</div>
+
+<!-- Greeting -->
+<div class="dashboard-greeting">
+    <h1>Hello, {{ username }} 👋</h1>
+    <p>What would you like to do today?</p>
+</div>
+
+<!-- Action Cards -->
+<div class="dashboard-cards">
+
+    <!-- Encode Card -->
+    <div class="action-card">
+        <div class="icon">🖼️</div>
+        <h3>Encode</h3>
+        <p>Hide a secret message<br>inside an image</p>
+        <a href="/encode">
+            <button>Open Encode</button>
+        </a>
+    </div>
+
+    <!-- Decode Card -->
+    <div class="action-card">
+        <div class="icon">🔍</div>
+        <h3>Decode</h3>
+        <p>Reveal hidden message<br>from an image</p>
+        <a href="/decode">
+            <button>Open Decode</button>
+        </a>
+    </div>
+
+</div>
+
+</body>
+</html>

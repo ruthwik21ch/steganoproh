@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile – Stegano Pro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js" defer></script>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+    <a href="/dashboard" class="topbar-brand">🔒 Stegano Pro</a>
+    <div class="topbar-actions">
+        <a href="/dashboard">
+            <button class="btn-ghost">Dashboard</button>
+        </a>
+        <a href="/logout">
+            <button class="btn-danger">Logout</button>
+        </a>
+    </div>
+</div>
+
+<!-- Content -->
+<div class="page-content">
+    <div class="section-header">
+        <h2>👤 Profile</h2>
+        <p>Your account details</p>
+    </div>
+
+    <div class="card" style="max-width:440px; margin:0 auto; text-align:center;">
+
+        <div class="profile-avatar">👤</div>
+        <div class="profile-username">{{ username }}</div>
+        <div style="font-size:13px; color:var(--slate-400);">Member</div>
+
+        <div class="profile-divider"></div>
+
+        <div style="text-align:left;">
+            <div class="profile-field">
+                <strong>Full Name</strong>
+                <span>{{ name }}</span>
+            </div>
+            <div class="profile-field">
+                <strong>Email</strong>
+                <span>{{ email }}</span>
+            </div>
+            <div class="profile-field">
+                <strong>Mobile</strong>
+                <span>{{ mobile }}</span>
+            </div>
+        </div>
+
+        <div class="profile-divider"></div>
+
+        <a href="/dashboard">
+            <button class="btn-outline">← Back to Dashboard</button>
+        </a>
+
+    </div>
+</div>
+
+</body>
+</html>
